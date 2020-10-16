@@ -1,0 +1,33 @@
+Description: This template deploys IAM role
+Resources:
+    UdacityS3ReadOnlyEC2:
+        Type: AWS::IAM::Role
+        Properties:
+            RoleName: UdacityS3ReadOnlyEC2
+            AssumeRolePolicyDocument:
+                Version: "2012-10-17"
+                Statement:
+                -   Effect: Allow
+                    Principal:
+                        Service:
+                        - ec2.amazonaws.com
+                    Action:
+                    - sts:AssumeRole
+            Path: "/"
+    RolePolicies:
+        Type: AWS::IAM::Policy
+        Properties:
+            PolicyName: UdacityDemo1S3ReadOnlyAccess
+            PolicyDocument:
+                Version: '2012-10-17'
+                Statement:
+                - 
+                    Effect: Allow
+                    Action: 
+                    -   s3:Get*
+                    -   s3:List*
+                    Resource: 
+                    -   arn:aws:s3:::udacity-demo-1
+                    -   arn:aws:s3:::udacity-demo-1/*
+            Roles:
+            -   Ref: UdacityS3ReadOnlyEC2
