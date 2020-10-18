@@ -11,6 +11,50 @@ Parameters:
         Default: 10.0.0.0/24
 
 Resources:
+
+#----------------- IAM Role -------------------
+#----------------------------------------------
+  UdacityS3ReadOnlyEC2:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: UdacityS3ReadOnlyEC2
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+                Service:
+                - ec2.amazonaws.com
+            Action:
+            - sts:AssumeRole
+      Path: "/"
+  RolePolicies:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: UdacityDemo1S3ReadOnlyAccess
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - 
+            Effect: Allow
+            Action: 
+              - s3:Get*
+              - s3:List*
+            Resource: 
+              - arn:aws:s3:::udacity-demo-1
+              - arn:aws:s3:::udacity-demo-1/*
+      Roles:
+          - Ref: UdacityS3ReadOnlyEC2    
+  ReadS3BucketInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - Ref: UdacityS3ReadOnlyEC2
+#----------------------------------------------
+
+
+#----------------- SecurityGroup --------------
+#----------------------------------------------
   LBSecGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -28,6 +72,7 @@ Resources:
         FromPort: 80
         ToPort: 80
         CidrIp: 0.0.0.0/0
+
   WebServerSecGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -49,7 +94,9 @@ Resources:
         FromPort: 0
         ToPort: 65535
         CidrIp: 0.0.0.0/0
-
+  
+#----------------- EC2 -------------------
+#-----------------------------------------
   WebAppLaunchConfig:
     Type: AWS::AutoScaling::LaunchConfiguration
     Properties:
@@ -63,7 +110,8 @@ Resources:
           cd /var/www/html
           aws s3 cp s3://udacity-demo-1/udacity.zip .
           unzip -o udacity.zip
-      ImageId: ami-0a313d6098716f372
+      ImageId: ami-0817d428a6fb68645
+      IamInstanceProfile: !Ref ReadS3BucketInstanceProfile
       KeyName: wordpress_blog
       SecurityGroups:
       - Ref: WebServerSecGroup
@@ -81,11 +129,13 @@ Resources:
           !Sub "${EnvironmentName}-PRIV-NETS"
       LaunchConfigurationName:
         Ref: WebAppLaunchConfig
-      MinSize: '3'
-      MaxSize: '5'
+      MinSize: '2'
+      MaxSize: '4'
       TargetGroupARNs:
       - Ref: WebAppTargetGroup
 
+#----------------- LoadBalancer ----------
+#-----------------------------------------
   WebAppLB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
@@ -94,6 +144,7 @@ Resources:
       - Fn::ImportValue: !Sub "${EnvironmentName}-PUB2-SN"
       SecurityGroups:
       - Ref: LBSecGroup
+  
   Listener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
@@ -116,6 +167,7 @@ Resources:
           Values: [/]
         ListenerArn: !Ref 'Listener'
         Priority: 1
+
   WebAppTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
@@ -131,30 +183,14 @@ Resources:
         Fn::ImportValue:
           Fn::Sub: "${EnvironmentName}-VPCID"
 
-# IAM Role that allows instances to use the S3 Service
-  UdacityS3ReadOnlyEC2:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service:
-              - ec2.amazonaws.com
-            Action:
-              - 'sts:AssumeRole'
-      Path: /
-      Policies:
-        - PolicyName: root
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - s3:Get*
-                  - s3:List*
-                Resource: 
-                  - arn:aws:s3:::udacity-demo-1
-                  - arn:aws:s3:::udacity-demo-1/*
+# -------------Output ------------
+# --------------------------------
+Outputs:
 
+  DNS:
+    Description: Public URL of the Load Balancer
+    Value: !Sub
+      - http://${DNSName}
+      - {DNSName: !GetAtt WebAppLB.DNSName}
+    Export:
+      Name: !Sub ${EnvironmentName}-URL
