@@ -2,13 +2,5 @@
 	{
 		"ParameterKey": "EnvironmentName",
 		"ParameterValue": "MyUdacityProject"
-    },
-    {
-        "ParameterKey": "WebServerImageId",
-        "ParameterValue": "ami-0817d428a6fb68645"
-    },
-    {
-        "ParameterKey": "InstanceKeyPairName",
-        "ParameterValue": "wordpress_blog"
-    }        
+    }      
 ]
