@@ -10,6 +10,16 @@ Parameters:
         Type: String
         Default: 10.0.0.0/24
 
+    WebServerImageId:
+        Description: Please select image id for your webserver
+        Type: String
+        Default: ami-00a54827eb7ffcd3c
+
+    InstanceKeyPairName:
+        Description: Please select name of an existing EC2 KeyPair to enable SSH access into the server
+        Type: AWS::EC2::KeyPair::KeyName
+        Default: udacityprj2
+
 Resources:
 
 #----------------- IAM Role -------------------
@@ -82,13 +92,9 @@ Resources:
           !Sub "${EnvironmentName}-VPCID"
       SecurityGroupIngress:
       - IpProtocol: tcp
-        FromPort: 8080
-        ToPort: 8080
+        FromPort: 80
+        ToPort: 80
         CidrIp: 0.0.0.0/0
-      - IpProtocol: tcp
-        FromPort: 22
-        ToPort: 22
-        CidrIp: !Ref MyIPCIDR
       SecurityGroupEgress:
       - IpProtocol: tcp
         FromPort: 0
@@ -110,9 +116,9 @@ Resources:
           cd /var/www/html
           aws s3 cp s3://udacity-demo-1/udacity.zip .
           unzip -o udacity.zip
-      ImageId: ami-0817d428a6fb68645
+      ImageId: !Ref WebServerImageId
       IamInstanceProfile: !Ref ReadS3BucketInstanceProfile
-      KeyName: wordpress_blog
+      KeyName: !Ref InstanceKeyPairName
       SecurityGroups:
       - Ref: WebServerSecGroup
       InstanceType: t3.medium
@@ -176,7 +182,7 @@ Resources:
       HealthCheckProtocol: HTTP
       HealthCheckTimeoutSeconds: 8
       HealthyThresholdCount: 2
-      Port: 8080
+      Port: 80
       Protocol: HTTP
       UnhealthyThresholdCount: 5
       VpcId: 
