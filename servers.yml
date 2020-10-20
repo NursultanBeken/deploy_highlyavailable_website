@@ -1,6 +1,13 @@
 Description: >
     This template deploys SecurityGroups, AutoScalingGroup and Elastic Load Balancer
 
+Mappings:
+  RegionMap:
+    us-east-1:
+      AMI: ami-0817d428a6fb68645
+    us-west-2:
+      AMI: ami-07a29e5e945228fa1
+
 Parameters:
     EnvironmentName:
         Description: An environment name that will be prefixed to resource names
@@ -10,18 +17,7 @@ Parameters:
         Type: String
         Default: 10.0.0.0/24
 
-    WebServerImageId:
-        Description: Please select image id for your webserver
-        Type: String
-        Default: ami-00a54827eb7ffcd3c
-
-    InstanceKeyPairName:
-        Description: Please select name of an existing EC2 KeyPair to enable SSH access into the server
-        Type: AWS::EC2::KeyPair::KeyName
-        Default: udacityprj2
-
 Resources:
-
 #----------------- IAM Role -------------------
 #----------------------------------------------
   UdacityS3ReadOnlyEC2:
@@ -116,9 +112,8 @@ Resources:
           cd /var/www/html
           aws s3 cp s3://udacity-demo-1/udacity.zip .
           unzip -o udacity.zip
-      ImageId: !Ref WebServerImageId
+      ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", AMI]
       IamInstanceProfile: !Ref ReadS3BucketInstanceProfile
-      KeyName: !Ref InstanceKeyPairName
       SecurityGroups:
       - Ref: WebServerSecGroup
       InstanceType: t3.medium
